@@ -1,10 +1,5 @@
 #include "route_planner.h"
 #include <algorithm>
-#include <cmath>
-#include <limits>
-
-using std::numeric_limits;
-using std::fabs;
 
 RoutePlanner::RoutePlanner(RouteModel &model, float start_x, float start_y, float end_x, float end_y): m_Model(model) {
     // Convert inputs to percentage:
@@ -42,10 +37,10 @@ void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
     current_node->FindNeighbors();
     for(auto neighbour: current_node->neighbors){
         neighbour->parent = current_node;
-        neighbour->h_value = CalculateHValue(neighbour);
         neighbour->g_value = current_node->g_value + current_node->distance(*neighbour);
-        neighbour->visited = true;
+        neighbour->h_value = CalculateHValue(neighbour);        
         open_list.push_back(neighbour);
+        neighbour->visited = true;
     }
 }
 
@@ -84,28 +79,21 @@ std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node 
     std::vector<RouteModel::Node> path_found;
 
     // TODO: Implement your solution here.
-
-    //if parent is null we have start node
     while (current_node->parent != nullptr)
     {
         path_found.push_back(*current_node);
         distance += current_node->distance(*current_node);
         current_node = current_node->parent;
     }
-    //push the start node on to the path
+
     path_found.push_back(*current_node);
-    //reverse the vector
+
     std::reverse(path_found.begin(), path_found.end());
 
     distance *= m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
     return path_found;
-
 }
 
-// to deal with any floating point precision issues comparing to zero
-bool almost_equal(float f1, float f2, int precision){
-    return fabs(f1-f2) <= numeric_limits<float>::epsilon() * fabs(f1+f2) * precision;
-}
 
 // TODO 7: Write the A* Search algorithm here.
 // Tips:
@@ -115,6 +103,7 @@ bool almost_equal(float f1, float f2, int precision){
 // - Store the final path in the m_Model.path attribute before the method exits. This path will then be displayed on the map tile.
 
 void RoutePlanner::AStarSearch() {
+    
     RouteModel::Node *current_node = nullptr;
 
     // TODO: Implement your solution here.
@@ -125,13 +114,10 @@ void RoutePlanner::AStarSearch() {
     {
         current_node = NextNode();
         float remaining_h = CalculateHValue(current_node);
-        if (almost_equal(remaining_h, 0.0f, 12)){
+        if (current_node->distance(*end_node) == 0) {
             m_Model.path = ConstructFinalPath(current_node);
-            return;
         }
-        else{
-            AddNeighbors(current_node);
-        }
+        AddNeighbors(current_node);
     }
     
 }
